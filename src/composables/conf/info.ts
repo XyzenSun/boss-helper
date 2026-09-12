@@ -85,11 +85,13 @@ export const formInfoData: Record<string, any> = {
   },
   sameCompanyFilter: {
     label: '相同公司过滤',
-    'data-help': '投递过的公司id存储到浏览器本地，避免多次向同公司投递，即使岗位不同hr不同',
+    'data-help':
+      '投递成功后会将公司 ID 存储到浏览器本地，避免再次投递同一公司的不同岗位。旧版本按岗位 ID 记录的历史不会命中，可按需清除后重新积累。',
   },
   sameHrFilter: {
     label: '相同Hr过滤',
-    'data-help': '投递过的hr存储到浏览器本地，避免多次向同hr投递。',
+    'data-help':
+      '投递成功后会将 HR ID 存储到浏览器本地，避免再次投递同一 HR 发布的不同岗位。旧版本按岗位 ID 记录的历史不会命中，可按需清除后重新积累。',
   },
   aiGreeting: {
     label: 'AI招呼语',

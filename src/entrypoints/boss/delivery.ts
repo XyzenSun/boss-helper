@@ -84,6 +84,8 @@ export const bossWorkflow = defineTaskWorkflow<BossHelperCtx, BoosJobData>(
     }
   }), // 投递
 
+  tasks.recordSuccessfulDelivery({ deps: ['岗位投递'] }), // 仅成功投递后记录去重标识
+
   defineTaskHandler('Boss信息获取', () => async (ctx, { rawData }) => {
     // await sendPublishReq({
     //   securityId: rawData.jobitem.securityId,

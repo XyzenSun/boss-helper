@@ -58,6 +58,8 @@ export type JobData = JobBaseData & {
   /** 招聘者信息 */
   boss: {
     link?: string
+    /** 招聘者的稳定标识，用于相同 HR 去重 */
+    id?: string
     /** 招聘者姓名，例如：'张经理' */
     name: string
     /** 招聘者职位，例如：'技术总监' */
@@ -81,6 +83,8 @@ export type JobData = JobBaseData & {
   /** 公司品牌信息 */
   brand: {
     link?: string
+    /** 公司的稳定标识，用于相同公司去重 */
+    id?: string
     /** 公司名称，例如：'北京科技有限公司' */
     name: string
     /** 公司Logo URL，例如：'https://img.bosszhipin.com/beijin/icon/logo.png' */

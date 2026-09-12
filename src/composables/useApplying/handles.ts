@@ -84,41 +84,59 @@ function isExpireFilterEnabled(filter: { value: boolean; expire: number }): bool
   return filter.value && filter.expire > 0
 }
 
+function isDuplicateRecordValid(timestamp: number | undefined, expire?: number): boolean {
+  if (timestamp === undefined) {
+    return false
+  }
+  return !expire || Date.now() - timestamp <= expire
+}
+
+function getCompanyRecordKey(companyId: string): string {
+  return `company:${companyId}`
+}
+
+function getHrRecordKey(hrId: string): string {
+  return `hr:${hrId}`
+}
+
 export class TaskRegistry<C extends HelperContext<C, T, S>, T, S = {}> {
+  private readonly companyRecords = new Map<string, Map<string, number>>()
+  private readonly hrRecords = new Map<string, Map<string, number>>()
+
+  private async getRecords(
+    cache: Map<string, Map<string, number>>,
+    storageKey: string,
+    uid: string,
+  ): Promise<Map<string, number>> {
+    let records = cache.get(uid)
+    if (!records) {
+      records = await loadSet(storageKey, uid)
+      cache.set(uid, records)
+    }
+    return records
+  }
+
   SameCompanyFilter = defineTaskHandler<C, T, S>(
     '重复沟通-相同公司',
     async (ctx) => {
       if (!ctx.helper.conf.formData.sameCompanyFilter.value) {
         return
       }
-      const someSet = await loadSet(sameCompanyKey, ctx.helper.uid)
+      const records = await this.getRecords(this.companyRecords, sameCompanyKey, ctx.helper.uid)
       return {
-        fn: async (_, { jobData: data }) => {
-          if (someSet.has(data.key)) {
+        fn: async (_, { jobData }) => {
+          const companyId = jobData.brand.id
+          const recordKey = companyId ? getCompanyRecordKey(companyId) : undefined
+          if (
+            recordKey &&
+            isDuplicateRecordValid(
+              records.get(recordKey),
+              ctx.helper.conf.formData.sameCompanyFilter.expire,
+            )
+          ) {
             ctx.helper.statistics.todayData.value.repeat++
             return taskResult.skip('相同公司已投递')
           }
-        },
-        after: [
-          async (ctx, { jobData: data }) => {
-            someSet.set(data.key, Date.now())
-            if (ctx.index % 3 === 0) {
-              await saveSet(
-                sameCompanyKey,
-                ctx.helper.uid,
-                someSet,
-                ctx.helper.conf.formData.sameCompanyFilter.expire,
-              )
-            }
-          },
-        ],
-        onEnd: async (ctx) => {
-          await saveSet(
-            sameCompanyKey,
-            ctx.helper.uid,
-            someSet,
-            ctx.helper.conf.formData.sameCompanyFilter.expire,
-          )
         },
       }
     },
@@ -131,38 +149,64 @@ export class TaskRegistry<C extends HelperContext<C, T, S>, T, S = {}> {
       if (!ctx.helper.conf.formData.sameHrFilter.value) {
         return
       }
-      const someSet = await loadSet(sameHrKey, ctx.helper.uid)
+      const records = await this.getRecords(this.hrRecords, sameHrKey, ctx.helper.uid)
       return {
-        fn: async (_, { jobData: data }) => {
-          if (data.key != null && someSet.has(data.key)) {
+        fn: async (_, { jobData }) => {
+          const hrId = jobData.boss.id
+          const recordKey = hrId ? getHrRecordKey(hrId) : undefined
+          if (
+            recordKey &&
+            isDuplicateRecordValid(
+              records.get(recordKey),
+              ctx.helper.conf.formData.sameHrFilter.expire,
+            )
+          ) {
             ctx.helper.statistics.todayData.value.repeat++
-            return taskResult.skip('相同hr已投递')
+            return taskResult.skip('相同HR已投递')
           }
-        },
-        after: [
-          async (ctx, { jobData: data }) => {
-            someSet.set(data.key, Date.now())
-            if (ctx.index % 3 === 0) {
-              await saveSet(
-                sameHrKey,
-                ctx.helper.uid,
-                someSet,
-                ctx.helper.conf.formData.sameHrFilter.expire,
-              )
-            }
-          },
-        ],
-        onEnd: async (ctx) => {
-          await saveSet(
-            sameHrKey,
-            ctx.helper.uid,
-            someSet,
-            ctx.helper.conf.formData.sameHrFilter.expire,
-          )
         },
       }
     },
     { label: '相同HR' },
+  )
+
+  recordSuccessfulDelivery = defineTaskHandler<C, T, S>(
+    '投递去重记录',
+    (ctx) => {
+      const companyFilter = ctx.helper.conf.formData.sameCompanyFilter
+      const hrFilter = ctx.helper.conf.formData.sameHrFilter
+      if (!companyFilter.value && !hrFilter.value) {
+        return
+      }
+
+      return async (_, { jobData }) => {
+        const now = Date.now()
+        const saves: Promise<void>[] = []
+
+        if (companyFilter.value && jobData.brand.id) {
+          const companies = await this.getRecords(
+            this.companyRecords,
+            sameCompanyKey,
+            ctx.helper.uid,
+          )
+          companies.set(getCompanyRecordKey(jobData.brand.id), now)
+          saves.push(saveSet(sameCompanyKey, ctx.helper.uid, companies, companyFilter.expire))
+        }
+        if (hrFilter.value && jobData.boss.id) {
+          const hrs = await this.getRecords(this.hrRecords, sameHrKey, ctx.helper.uid)
+          hrs.set(getHrRecordKey(jobData.boss.id), now)
+          saves.push(saveSet(sameHrKey, ctx.helper.uid, hrs, hrFilter.expire))
+        }
+
+        try {
+          await Promise.all(saves)
+        } catch (error) {
+          // 投递已成功，去重记录失败不应让工作流把本次投递视为失败。
+          ctx.log.error('保存投递去重记录失败', error)
+        }
+      }
+    },
+    { label: '投递去重记录' },
   )
 
   jobTitle = defineTaskHandler<C, T, S>('岗位名', (ctx) => {

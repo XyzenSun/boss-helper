@@ -110,6 +110,7 @@ function convertBossZpJobItemToJobData(item: BossZpJobItemData): JobData {
 
     // 招聘者信息
     boss: {
+      id: item.encryptBossId,
       link: `https://www.zhipin.com/boss_detail/${item.encryptBossId}.html`,
       name: item.bossName,
       title: item.bossTitle,
@@ -122,6 +123,7 @@ function convertBossZpJobItemToJobData(item: BossZpJobItemData): JobData {
 
     // 公司品牌信息
     brand: {
+      id: item.encryptBrandId,
       link: `https://www.zhipin.com/gongsi/${item.encryptBrandId}.html`,
       name: item.brandName,
       logo: item.brandLogo,
