@@ -55,9 +55,20 @@ export const formInfoData: Record<string, any> = {
     label: '招呼语变量',
     'data-help': '使用mitem模板引擎来对招呼语进行渲染;',
   },
-  activityFilter: {
-    label: '活跃度过滤',
-    'data-help': '打开后会自动过滤掉最近未活跃的Boss发布的工作。以免浪费每天的100次机会。',
+  hrActivityFilter: {
+    label: 'HR活跃过滤',
+    'data-help':
+      '按HR本人的活跃状态过滤。HR不上线意味着招呼语没人看，这是最能避免浪费每天100次机会的一档。平台对HR只给文案不给时间戳，所以档位最细只能到「14天内」。',
+  },
+  companyActivityFilter: {
+    label: '公司活跃过滤',
+    'data-help':
+      '按公司(品牌)的活跃时间过滤。注意公司活跃不等于HR活跃：大公司常年有人维护，但具体对接的HR可能几个月没登录，建议配合HR活跃过滤一起用。',
+  },
+  jobActivityFilter: {
+    label: '职位更新过滤',
+    'data-help':
+      '按职位最后更新时间过滤，用于剔除长期挂着不动的陈旧岗位。这一判定在拉取岗位详情之前完成，能省下一次详情请求。平台不保证返回该时间，取不到时不过滤。',
   },
   goldHunterFilter: {
     label: '猎头过滤',
@@ -191,8 +202,17 @@ export const defaultFormData: FormData = {
   greetingVariable: {
     value: false,
   },
-  activityFilter: {
-    value: true,
+  hrActivityFilter: {
+    value: false,
+    expire: 14 * 24 * 60 * 60 * 1000,
+  },
+  companyActivityFilter: {
+    value: false,
+    expire: 30 * 24 * 60 * 60 * 1000,
+  },
+  jobActivityFilter: {
+    value: false,
+    expire: 30 * 24 * 60 * 60 * 1000,
   },
   friendStatus: {
     value: true,

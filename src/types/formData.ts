@@ -24,7 +24,9 @@ export interface FormData {
   customGreeting: FormDataInput
   deliveryLimit: FormDataInputNumber
   greetingVariable: FormDataCheckbox
-  activityFilter: FormDataCheckbox
+  hrActivityFilter: FormDataCheckbox & { expire: number }
+  companyActivityFilter: FormDataCheckbox & { expire: number }
+  jobActivityFilter: FormDataCheckbox & { expire: number }
   friendStatus: FormDataCheckbox
   bossGoldMedalHr: FormDataCheckbox
   sameCompanyFilter: FormDataCheckbox & { expire?: number }

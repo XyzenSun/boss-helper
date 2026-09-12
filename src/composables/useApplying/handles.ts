@@ -66,6 +66,24 @@ export const taskResult = {
   }),
 }
 
+function activeTextToDays(activeText: string): number {
+  const activeTimeRules = [
+    { keywords: ['刚刚', '今日', '今天', '分钟', '小时'], days: 1 },
+    { keywords: ['昨日'], days: 3 },
+    { keywords: ['周'], days: 14 },
+  ]
+  for (const rule of activeTimeRules) {
+    if (rule.keywords.some((keyword) => activeText.includes(keyword))) {
+      return rule.days
+    }
+  }
+  return Infinity
+}
+
+function isExpireFilterEnabled(filter: { value: boolean; expire: number }): boolean {
+  return filter.value && filter.expire > 0
+}
+
 export class TaskRegistry<C extends HelperContext<C, T, S>, T, S = {}> {
   SameCompanyFilter = defineTaskHandler<C, T, S>(
     '重复沟通-相同公司',
@@ -348,28 +366,46 @@ export class TaskRegistry<C extends HelperContext<C, T, S>, T, S = {}> {
     },
   )
 
-  activityFilter = defineTaskHandler<C, T, S>('活跃度过滤', (ctx) => {
-    if (!ctx.helper.conf.formData.activityFilter.value) {
+  jobActivityFilter = defineTaskHandler<C, T, S>('职位活跃过滤', (ctx) => {
+    const filter = ctx.helper.conf.formData.jobActivityFilter
+    if (!isExpireFilterEnabled(filter)) {
       return
     }
-    return async (_, { jobData }) => {
-      const activeText = jobData.activeTimeStr
-      const activeTime = jobData.activeTime
+    return async (taskCtx, { jobData }) => {
+      const jobUpdateTime = jobData.jobUpdateTime
+      if (jobUpdateTime && taskCtx.now.getTime() - jobUpdateTime > filter.expire) {
+        taskCtx.helper.statistics.todayData.value.activityFilter++
+        return taskResult.skip(`职位陈旧 [${new Date(jobUpdateTime).toLocaleDateString()}]`)
+      }
+    }
+  })
 
-      if (!activeText && !activeTime) {
-        ctx.helper.statistics.todayData.value.activityFilter++
-        return taskResult.skip(`无活跃内容,如果全失败请反馈`)
-      } else if (!activeText && activeTime) {
-        if (ctx.now.getTime() - activeTime >= 7 * 24 * 60 * 60 * 1000) {
-          ctx.helper.statistics.todayData.value.activityFilter++
-          return taskResult.skip(`不活跃 [${new Date(activeTime).toLocaleString()}]`)
-        }
-      } else if (!activeText) {
-        ctx.helper.statistics.todayData.value.activityFilter++
-        return taskResult.skip(`无活跃信息,如果全失败请反馈`)
-      } else if (activeText.includes('月') || activeText.includes('年')) {
-        ctx.helper.statistics.todayData.value.activityFilter++
-        return taskResult.skip(`不活跃, [${activeText}]`)
+  activityFilter = defineTaskHandler<C, T, S>('活跃度过滤', (ctx) => {
+    const hrFilter = ctx.helper.conf.formData.hrActivityFilter
+    const companyFilter = ctx.helper.conf.formData.companyActivityFilter
+    if (!isExpireFilterEnabled(hrFilter) && !isExpireFilterEnabled(companyFilter)) {
+      return
+    }
+    return async (taskCtx, { jobData }) => {
+      const isHrOnline = jobData.boss?.isOnline === true
+      if (
+        isExpireFilterEnabled(hrFilter) &&
+        !isHrOnline &&
+        jobData.hrActiveTimeStr &&
+        activeTextToDays(jobData.hrActiveTimeStr) * 24 * 60 * 60 * 1000 > hrFilter.expire
+      ) {
+        taskCtx.helper.statistics.todayData.value.activityFilter++
+        return taskResult.skip(`HR不活跃 [${jobData.hrActiveTimeStr}]`)
+      }
+      if (
+        isExpireFilterEnabled(companyFilter) &&
+        jobData.companyActiveTime &&
+        taskCtx.now.getTime() - jobData.companyActiveTime > companyFilter.expire
+      ) {
+        taskCtx.helper.statistics.todayData.value.activityFilter++
+        return taskResult.skip(
+          `公司不活跃 [${new Date(jobData.companyActiveTime).toLocaleDateString()}]`,
+        )
       }
     }
   })

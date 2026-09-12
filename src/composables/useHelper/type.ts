@@ -39,6 +39,12 @@ export type JobData = JobBaseData & {
   activeTime?: number
   /** 活跃时间字符串，例如：'上周活跃' */
   activeTimeStr?: string
+  /** 职位最后更新时间，用于在请求详情前过滤陈旧岗位 */
+  jobUpdateTime?: number
+  /** HR 活跃文案，例如：'本周活跃' */
+  hrActiveTimeStr?: string
+  /** 公司（品牌）活跃时间戳 */
+  companyActiveTime?: number
 
   /** 福利列表，例如：['意外险', '工龄奖', '团建聚餐'] */
   welfareList?: string[]
@@ -133,14 +139,13 @@ export type ConfigItem =
       type:
         | 'select'
         | 'checkbox'
-        | (
-            | 'salaryRange'
-            | 'companySizeRange'
-            | 'customGreeting'
-            | 'address'
-            | 'appearance'
-            | 'checkbox-expire'
-          )
+        | 'checkbox-expire'
+        | 'salaryRange'
+        | 'companySizeRange'
+        | 'customGreeting'
+        | 'address'
+        | 'appearance'
+      expireOptions?: Array<{ label: string; value: number }>
     }
   | AlertItem
   | {

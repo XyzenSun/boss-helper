@@ -34,6 +34,7 @@ export const bossWorkflow = defineTaskWorkflow<BossHelperCtx, BoosJobData>(
   tasks.salaryRange(), // 薪资筛选
   tasks.companySizeRange(), // 公司规模筛选
   tasks.goldHunterFilter(), // 猎头过滤
+  tasks.jobActivityFilter(), // 职位更新过滤
   defineTaskHandler(
     '岗位详情获取',
     () => async (ctx, job) => {

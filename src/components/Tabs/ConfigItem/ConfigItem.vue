@@ -27,14 +27,17 @@ const exp = computed(() => {
   ) {
     return []
   }
-  return [
+  const defaultExpireOptions = [
     { label: '不限', value: 0 },
     { label: '7天', value: 7 * 24 * 60 * 60 * 1000 },
     { label: '30天', value: 30 * 24 * 60 * 60 * 1000 },
     { label: '90天', value: 90 * 24 * 60 * 60 * 1000 },
     { label: '180天', value: 180 * 24 * 60 * 60 * 1000 },
     { label: '360天', value: 360 * 24 * 60 * 60 * 1000 },
-  ].map(
+  ]
+  const expireOptions = props.item.expireOptions ?? defaultExpireOptions
+
+  return expireOptions.map(
     (menu) =>
       ({
         ...menu,

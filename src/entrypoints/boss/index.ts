@@ -50,11 +50,25 @@ const initSearch = useHookVueFn('#wrap .page-job-wrapper,.job-recommend-main,.pa
   'onSearch',
 ])
 
+const day = 24 * 60 * 60 * 1000
+
+const jobActivityExpireOptions = [
+  { label: '7天内', value: 7 * day },
+  { label: '14天内', value: 14 * day },
+  { label: '30天内', value: 30 * day },
+  { label: '90天内', value: 90 * day },
+  { label: '180天内', value: 180 * day },
+]
+
+const hrActivityExpireOptions = [
+  { label: '今日活跃', value: day },
+  { label: '三日内活跃', value: 3 * day },
+  { label: '14天内活跃', value: 14 * day },
+]
+
 function formatActiveTime(timestamp: number): string {
   const now = Date.now()
   const diff = now - timestamp
-  const day = 24 * 60 * 60 * 1000
-
   if (diff < day) return '今日活跃'
   if (diff < 2 * day) return '昨日活跃'
   if (diff < 7 * day) return '本周活跃'
@@ -89,6 +103,7 @@ function convertBossZpJobItemToJobData(item: BossZpJobItemData): JobData {
     // 活跃时间 - 从 lastModifyTime 获取
     activeTime: item.lastModifyTime,
     activeTimeStr: item.lastModifyTime ? formatActiveTime(item.lastModifyTime) : undefined,
+    jobUpdateTime: item.lastModifyTime,
 
     // 福利
     welfareList: item.welfareList,
@@ -395,8 +410,19 @@ export class BossHelperCtx extends HelperContext<BossHelperCtx, BoosJobData, {}>
                 class: 'col-span-full flex flex-wrap gap-2 mt-3',
                 items: [
                   conf.configLevel.intermediate && {
-                    type: 'checkbox',
-                    key: 'activityFilter',
+                    type: 'checkbox-expire',
+                    key: 'hrActivityFilter',
+                    expireOptions: hrActivityExpireOptions,
+                  },
+                  conf.configLevel.intermediate && {
+                    type: 'checkbox-expire',
+                    key: 'companyActivityFilter',
+                    expireOptions: jobActivityExpireOptions,
+                  },
+                  conf.configLevel.intermediate && {
+                    type: 'checkbox-expire',
+                    key: 'jobActivityFilter',
+                    expireOptions: jobActivityExpireOptions,
                   },
                   {
                     type: 'checkbox',
@@ -553,6 +579,8 @@ export class BossHelperCtx extends HelperContext<BossHelperCtx, BoosJobData, {}>
     const targetJob = job.jobData
     targetJob.activeTime = detail.brandComInfo.activeTime
     targetJob.activeTimeStr = detail.bossInfo.activeTimeDesc
+    targetJob.companyActiveTime = detail.brandComInfo.activeTime
+    targetJob.hrActiveTimeStr = detail.bossInfo.activeTimeDesc
     targetJob.jobDescription = detail.jobInfo.postDescription
     targetJob.city = detail.jobInfo.locationName
     targetJob.address = detail.jobInfo.address

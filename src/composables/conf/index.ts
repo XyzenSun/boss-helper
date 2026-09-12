@@ -49,6 +49,21 @@ const formDataKey = () => {
   return 'local:web-geek-job-FormData'
 }
 
+function migrateActivityFilter(from: Partial<FormData>) {
+  const legacyActivityFilter = from.activityFilter
+  if (legacyActivityFilter) {
+    if (legacyActivityFilter.value === true && from.hrActivityFilter === undefined) {
+      from.hrActivityFilter = {
+        value: true,
+        expire: 14 * 24 * 60 * 60 * 1000,
+      }
+    }
+    delete from.activityFilter
+  }
+
+  return from
+}
+
 watchThrottled(
   formData,
   (v) => {
@@ -152,7 +167,7 @@ export const useConf = () => {
         color: 'error',
       })
     }
-    return from
+    return migrateActivityFilter(from)
   }
 
   async function init() {
@@ -206,7 +221,9 @@ export const useConf = () => {
   }
 
   async function confReload() {
-    const v = deepmerge<FormData>(defaultFormData, await counter.storageGet(formDataKey(), {}))
+    let from = await counter.storageGet<Partial<FormData>>(formDataKey(), {})
+    from = (await formDataHandler(from)) ?? from
+    const v = deepmerge<FormData>(defaultFormData, from)
     deepmerge(formData, v, { clone: false })
     logger.debug('formData已重置')
     toast.add({
@@ -216,7 +233,9 @@ export const useConf = () => {
   }
 
   async function confExport() {
-    const data = deepmerge<FormData>(defaultFormData, await counter.storageGet(formDataKey(), {}))
+    let from = await counter.storageGet<Partial<FormData>>(formDataKey(), {})
+    from = (await formDataHandler(from)) ?? from
+    const data = deepmerge<FormData>(defaultFormData, from)
     exportJson(data, '打招呼配置')
   }
 
@@ -235,7 +254,9 @@ export const useConf = () => {
       formData,
       [
         'deliveryLimit',
-        'activityFilter',
+        'hrActivityFilter',
+        'companyActivityFilter',
+        'jobActivityFilter',
         'friendStatus',
         'sameCompanyFilter',
         'sameHrFilter',
