@@ -20,6 +20,13 @@ async function initDB() {
   })
 }
 
+export interface WebdavResponse {
+  ok: boolean
+  status: number
+  statusText: string
+  body: string | null
+}
+
 export class BackgroundCounter {
   async request(args: {
     url: string
@@ -48,6 +55,40 @@ export class BackgroundCounter {
       return result
     })
     return res
+  }
+
+  /**
+   * WebDAV 请求代理。页面与 content script 受同源策略限制无法直连第三方 WebDAV 服务，
+   * background 拥有全站 host_permissions 可免 CORS 请求，所以备份流量必须经此转发。
+   */
+  async webdavRequest(args: {
+    method: string
+    url: string
+    headers?: Record<string, string>
+    body?: string
+  }): Promise<WebdavResponse> {
+    // 不打印 headers 与 body，避免 Basic 凭据泄露到控制台日志
+    console.log('webdavRequest', args.method, args.url)
+    const signal = AbortSignal.timeout(30_000)
+
+    const res = await fetch(args.url, {
+      method: args.method,
+      headers: args.headers,
+      body: args.body,
+      signal,
+    })
+
+    let body: string | null = null
+    if (args.method === 'GET') {
+      // GET 用于拉取备份文件，需要完整内容
+      body = await res.text().catch(() => null)
+    } else if (res.status >= 400) {
+      // 错误响应截取片段，用于向用户展示服务端报错原因
+      const text = await res.text().catch(() => '')
+      body = text ? text.slice(0, 500) : null
+    }
+
+    return { ok: res.ok, status: res.status, statusText: res.statusText, body }
   }
 
   async notify(args: Browser.notifications.NotificationCreateOptions) {

@@ -35,6 +35,10 @@ export class ContentCounter implements BackgroundCounter {
     return this.background.request(...args)
   }
 
+  async webdavRequest(...args: Parameters<BackgroundCounter['webdavRequest']>) {
+    return this.background.webdavRequest(...args)
+  }
+
   async notify(...args: Parameters<BackgroundCounter['notify']>) {
     return this.background.notify(...args)
   }

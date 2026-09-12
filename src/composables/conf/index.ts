@@ -12,11 +12,14 @@ import { defaultFormData } from './info'
 
 export * from './info'
 
-const formDataPresetKey = 'local:FormDataPrese'
-const formDataPresetsKey = 'local:FormDataPreses'
+// 导出存储键供备份模块(useBackup)枚举备份清单，避免键名散落两处产生不一致
+export const appearanceConfKey = 'appearance-conf'
+export const formDataBaseKey = 'local:web-geek-job-FormData'
+export const formDataPresetKey = 'local:FormDataPrese'
+export const formDataPresetsKey = 'local:FormDataPreses'
 
 export const appearanceConf = useStorageAsync(
-  'appearance-conf',
+  appearanceConfKey,
   {
     hideHeader: false,
     changeIcon: false,
@@ -44,9 +47,9 @@ const formDataPresets = ref([
 
 const formDataKey = () => {
   if (formDataPreset.value !== 'default') {
-    return `local:web-geek-job-FormData-${formDataPreset.value}`
+    return `${formDataBaseKey}-${formDataPreset.value}`
   }
-  return 'local:web-geek-job-FormData'
+  return formDataBaseKey
 }
 
 function migrateActivityFilter(from: Partial<FormData>) {
