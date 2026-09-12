@@ -25,8 +25,13 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build Extensions
-        run: bun run zip
+      - name: Build and Zip Extensions
+        run: |
+          # 顺序执行: package.json 中的 run-p 并行器(npm-run-all@4)不兼容 4 段版本号(非 semver),
+          # 且 bun run 嵌套脚本存在子进程不退出的问题, 故直接调用 wxt 二进制
+          ./node_modules/.bin/wxt zip -b chrome
+          ./node_modules/.bin/wxt zip -b firefox --mv3
+          ./node_modules/.bin/wxt zip -b edge
 
       - name: Prepare release
         run: |
